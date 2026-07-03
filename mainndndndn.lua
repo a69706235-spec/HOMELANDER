@@ -22,11 +22,6 @@ local ShiftLockActive = false
 local BoostActive = false
 local IsBoostingCharging = false
 
--- Переменные для Аима и Игроков
-local SelectedPlayerName = ""
-local AimActive = false
-local AimConnection = nil
-
 -- Настройки физического кружения персонажа
 local CharWobbleEnabled = true
 local CharWobbleSpeed = 1
@@ -78,7 +73,7 @@ local LandingHeightOffset = 3.2
 local wasMovingInFlight = false
 local savedCameraType = Enum.CameraType.Custom
 
--- Список Idle-анимаций из второго скрипта (8 штук)
+-- Список Idle-анимаций
 local IdleAnims = {
     "rbxassetid://126046533185038",
     "rbxassetid://96251694399659",
@@ -182,13 +177,13 @@ local SpeedFlyBtn  = createModernBtn("Speed\nFly", UDim2.new(0.53, 0, 0.15, 0))
 local BoostBtn     = createModernBtn("Boost\nOFF", UDim2.new(0.59, 0, 0.15, 0))
 
 -- КНОПКИ ВНУТРИ НАСТРОЕК
-local WobbleMenuBtn  = createModernBtn("Wobble\nMenu", UDim2.new(0.17, 0, 0.23, 0))   
-local LookBtn        = createModernBtn("Camera-Lock\nON", UDim2.new(0.23, 0, 0.23, 0))
-local LockBtn        = createModernBtn("Lock\nOFF", UDim2.new(0.29, 0, 0.23, 0))
-local EmoteMenuBtn   = createModernBtn("Emote", UDim2.new(0.35, 0, 0.23, 0))
-local SpeechMenuBtn  = createModernBtn("Speech", UDim2.new(0.41, 0, 0.23, 0))
-local ShiftLockBtn   = createModernBtn("Shift-Lock\nOFF", UDim2.new(0.47, 0, 0.23, 0))
-local PlayerMenuBtn  = createModernBtn("Player", UDim2.new(0.53, 0, 0.23, 0), nil, true) -- Новая кнопка Player
+local WobbleMenuBtn  = createModernBtn("Wobble\nMenu", UDim2.new(0.23, 0, 0.23, 0))   
+local LookBtn        = createModernBtn("Camera-Lock\nON", UDim2.new(0.29, 0, 0.23, 0))
+local LockBtn        = createModernBtn("Lock\nOFF", UDim2.new(0.35, 0, 0.23, 0))
+local EmoteMenuBtn   = createModernBtn("Emote", UDim2.new(0.41, 0, 0.23, 0))
+local SpeechMenuBtn  = createModernBtn("Speech", UDim2.new(0.47, 0, 0.23, 0))
+local ShiftLockBtn   = createModernBtn("Shift-Lock\nOFF", UDim2.new(0.53, 0, 0.23, 0))
+local PlayerMenuBtn  = createModernBtn("Player\nMenu", UDim2.new(0.59, 0, 0.23, 0)) -- НОВАЯ КНОПКА
 
 local UpBtn        = createModernBtn("▲", UDim2.new(0.65, 0, 0.15, 0), UDim2.new(0, 36, 0, 36)) 
 local DownBtn      = createModernBtn("▼", UDim2.new(0.68, 0, 0.15, 0), UDim2.new(0, 36, 0, 36)) 
@@ -254,203 +249,104 @@ for i, data in ipairs(SpeechData) do
     sBtn.MouseButton1Click:Connect(function() sendToChat(data[2]) end)
 end
 
--- СОЗДАНИЕ МЕНЮ ИГРОКОВ (PLAYER MENU)
-local PlayerPanel = Instance.new("Frame")
-PlayerPanel.Name = "PlayerPanel"
-PlayerPanel.Size = UDim2.new(0, 180, 0, 180)
+-- ============================= НОВАЯ ПАНЕЛЬ ИГРОКОВ =============================
+local PlayerPanel = Instance.new("Frame", ScreenGui)
+PlayerPanel.Size = UDim2.new(0, 210, 0, 150)
 PlayerPanel.Position = UDim2.new(0.53, 0, 0.31, 0)
 PlayerPanel.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-PlayerPanel.BackgroundTransparency = 0.2
+PlayerPanel.BackgroundTransparency = 0.35
 PlayerPanel.Visible = false
-PlayerPanel.Parent = ScreenGui
 
-local PlayerPanelCorner = Instance.new("UICorner")
-PlayerPanelCorner.CornerRadius = UDim.new(0, 12)
-PlayerPanelCorner.Parent = PlayerPanel
+local ppCorner = Instance.new("UICorner", PlayerPanel)
+ppCorner.CornerRadius = UDim.new(0, 12)
+local ppStroke = Instance.new("UIStroke", PlayerPanel)
+ppStroke.Color = Color3.fromRGB(60, 60, 60)
+ppStroke.Thickness = 1
+ppStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 
-local PlayerPanelStroke = Instance.new("UIStroke")
-PlayerPanelStroke.Color = Color3.fromRGB(60, 60, 60)
-PlayerPanelStroke.Thickness = 1
-PlayerPanelStroke.Parent = PlayerPanel
+-- Кнопки слева в панели
+local AimbotBtn = createModernBtn("Aimbot\nOFF", UDim2.new(0, 5, 0, 5), UDim2.new(0, 60, 0, 40))
+AimbotBtn.Parent = PlayerPanel
+local TPBtn = createModernBtn("TP", UDim2.new(0, 5, 0, 50), UDim2.new(0, 60, 0, 40))
+TPBtn.Parent = PlayerPanel
+local RefreshBtn = createModernBtn("Refresh", UDim2.new(0, 5, 0, 95), UDim2.new(0, 60, 0, 40))
+RefreshBtn.Parent = PlayerPanel
 
--- Скролл-список игроков
-local PlayerListScroll = Instance.new("ScrollingFrame")
-PlayerListScroll.Size = UDim2.new(0, 170, 0, 100)
-PlayerListScroll.Position = UDim2.new(0, 5, 0, 5)
-PlayerListScroll.BackgroundTransparency = 1
-PlayerListScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
-PlayerListScroll.ScrollBarThickness = 4
-PlayerListScroll.Parent = PlayerPanel
+-- Скроллинг лист справа
+local PlayerScroll = Instance.new("ScrollingFrame", PlayerPanel)
+PlayerScroll.Size = UDim2.new(0, 130, 0, 140)
+PlayerScroll.Position = UDim2.new(0, 70, 0, 5)
+PlayerScroll.BackgroundTransparency = 1
+PlayerScroll.BorderSizePixel = 0
+PlayerScroll.ScrollBarThickness = 4
 
-local PlayerListLayout = Instance.new("UIListLayout")
-PlayerListLayout.Padding = UDim.new(0, 4)
-PlayerListLayout.Parent = PlayerListScroll
+local UIListLayout = Instance.new("UIListLayout", PlayerScroll)
+UIListLayout.Padding = UDim.new(0, 5)
 
--- Кнопки управления внутри PlayerPanel
-local AimPlayerBtn = Instance.new("TextButton")
-AimPlayerBtn.Size = UDim2.new(0, 50, 0, 30)
-AimPlayerBtn.Position = UDim2.new(0, 5, 0, 115)
-AimPlayerBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-AimPlayerBtn.Text = "Aim\nOFF"
-AimPlayerBtn.TextColor3 = Color3.fromRGB(245, 245, 245)
-AimPlayerBtn.Font = Enum.Font.GothamBold
-AimPlayerBtn.TextSize = 9
-AimPlayerBtn.Parent = PlayerPanel
-Instance.new("UICorner", AimPlayerBtn).CornerRadius = UDim.new(0, 6)
+local selectedTargetPlayer = nil
+local aimbotActive = false
 
-local TPPlayerBtn = Instance.new("TextButton")
-TPPlayerBtn.Size = UDim2.new(0, 50, 0, 30)
-TPPlayerBtn.Position = UDim2.new(0, 65, 0, 115)
-TPPlayerBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-TPPlayerBtn.Text = "TP"
-TPPlayerBtn.TextColor3 = Color3.fromRGB(245, 245, 245)
-TPPlayerBtn.Font = Enum.Font.GothamBold
-TPPlayerBtn.TextSize = 9
-TPPlayerBtn.Parent = PlayerPanel
-Instance.new("UICorner", TPPlayerBtn).CornerRadius = UDim.new(0, 6)
-
-local UpdatePlayersBtn = Instance.new("TextButton")
-UpdatePlayersBtn.Size = UDim2.new(0, 50, 0, 30)
-UpdatePlayersBtn.Position = UDim2.new(0, 125, 0, 115)
-UpdatePlayersBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-UpdatePlayersBtn.Text = "Update"
-UpdatePlayersBtn.TextColor3 = Color3.fromRGB(245, 245, 245)
-UpdatePlayersBtn.Font = Enum.Font.GothamBold
-UpdatePlayersBtn.TextSize = 9
-UpdatePlayersBtn.Parent = PlayerPanel
-Instance.new("UICorner", UpdatePlayersBtn).CornerRadius = UDim.new(0, 6)
-
-local StatusLabel = Instance.new("TextLabel")
-StatusLabel.Size = UDim2.new(0, 170, 0, 20)
-StatusLabel.Position = UDim2.new(0, 5, 0, 150)
-StatusLabel.BackgroundTransparency = 1
-StatusLabel.Text = "Selected: None"
-StatusLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
-StatusLabel.Font = Enum.Font.Gotham
-StatusLabel.TextSize = 9
-StatusLabel.TextAlignment = Enum.TextAlignment.Left
-StatusLabel.Parent = PlayerPanel
-
--- Перетаскивание для PlayerPanel
-PlayerPanel.InputBegan:Connect(function(input)
-    if ButtonsLocked then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        local startPos = PlayerPanel.Position
-        local dragStart = input.Position
-        local conn
-        conn = UserInputService.InputChanged:Connect(function(input2)
-            if input2.UserInputType == Enum.UserInputType.MouseMovement or input2.UserInputType == Enum.UserInputType.Touch then
-                local delta = input2.Position - dragStart
-                PlayerPanel.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            end
-        end)
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then conn:Disconnect() end
-        end)
-    end
-end)
-
--- Функция обновления списка игроков
 local function refreshPlayerList()
-    for _, child in ipairs(PlayerListScroll:GetChildren()) do
+    for _, child in ipairs(PlayerScroll:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
     end
-    
-    local count = 0
+    local yOffset = 0
     for _, p in ipairs(game.Players:GetPlayers()) do
         if p ~= Player then
-            count = count + 1
-            local pBtn = Instance.new("TextButton")
-            pBtn.Size = UDim2.new(1, -10, 0, 22)
-            pBtn.BackgroundColor3 = (SelectedPlayerName == p.Name) and Color3.fromRGB(80, 80, 80) or Color3.fromRGB(35, 35, 35)
-            pBtn.Text = p.DisplayName .. " (@" .. p.Name .. ")"
-            pBtn.TextColor3 = Color3.fromRGB(240, 240, 240)
-            pBtn.Font = Enum.Font.Gotham
-            pBtn.TextSize = 9
-            pBtn.Parent = PlayerListScroll
-            Instance.new("UICorner", pBtn).CornerRadius = UDim.new(0, 4)
+            local pBtn = Instance.new("TextButton", PlayerScroll)
+            pBtn.Size = UDim2.new(1, -10, 0, 30)
+            pBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            pBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            pBtn.Text = p.Name
+            pBtn.Font = Enum.Font.GothamSemibold
+            pBtn.TextSize = 10
+            Instance.new("UICorner", pBtn).CornerRadius = UDim.new(0, 6)
             
             pBtn.MouseButton1Click:Connect(function()
-                SelectedPlayerName = p.Name
-                StatusLabel.Text = "Selected: " .. p.Name
-                refreshPlayerList()
+                selectedTargetPlayer = p
+                for _, child in ipairs(PlayerScroll:GetChildren()) do
+                    if child:IsA("TextButton") then
+                        child.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+                    end
+                end
+                pBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
             end)
+            yOffset = yOffset + 35
         end
     end
-    PlayerListScroll.CanvasSize = UDim2.new(0, 0, 0, count * 26)
+    PlayerScroll.CanvasSize = UDim2.new(0, 0, 0, yOffset)
 end
 
-UpdatePlayersBtn.MouseButton1Click:Connect(refreshPlayerList)
+RefreshBtn.MouseButton1Click:Connect(refreshPlayerList)
 
--- ЛОГИКА АИМА (Включение/Отключение)
-local function stopAim()
-    AimActive = false
-    AimPlayerBtn.Text = "Aim\nOFF"
-    AimPlayerBtn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    if AimConnection then AimConnection:Disconnect() AimConnection = nil end
-    local Char = Player.Character
-    local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
-    if Hum and not Flying and not LasersActive then Hum.AutoRotate = true end
-end
+AimbotBtn.MouseButton1Click:Connect(function()
+    aimbotActive = not aimbotActive
+    AimbotBtn.Text = aimbotActive and "Aimbot\nON" or "Aimbot\nOFF"
+    AimbotBtn.BackgroundColor3 = aimbotActive and Color3.fromRGB(150, 0, 0) or Color3.fromRGB(20, 20, 20)
+end)
 
-local function startAim()
-    if SelectedPlayerName == "" then return end
-    local targetP = game.Players:FindFirstChild(SelectedPlayerName)
-    if not targetP then return end
-    
-    AimActive = true
-    AimPlayerBtn.Text = "Aim\nON"
-    AimPlayerBtn.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
-    
-    AimConnection = RunService.RenderStepped:Connect(function()
+TPBtn.MouseButton1Click:Connect(function()
+    if selectedTargetPlayer and selectedTargetPlayer.Character and selectedTargetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local myChar = Player.Character
+        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+            myChar.HumanoidRootPart.CFrame = selectedTargetPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 3)
+        end
+    end
+end)
+
+-- Логика Aimbot
+RunService.RenderStepped:Connect(function()
+    if aimbotActive and selectedTargetPlayer and selectedTargetPlayer.Character and selectedTargetPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local myChar = Player.Character
         local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
-        local tP = game.Players:FindFirstChild(SelectedPlayerName)
-        local tChar = tP and tP.Character
-        local tRoot = tChar and tChar:FindFirstChild("HumanoidRootPart")
-        
-        if myRoot and tRoot then
-            if Flying and bg then
-                local lookPos = Vector3.new(tRoot.Position.X, myRoot.Position.Y, tRoot.Position.Z)
-                if (lookPos - myRoot.Position).Magnitude > 0.1 then
-                    bg.CFrame = CFrame.lookAt(myRoot.Position, lookPos)
-                end
-            else
-                local lookPos = Vector3.new(tRoot.Position.X, myRoot.Position.Y, tRoot.Position.Z)
-                if (lookPos - myRoot.Position).Magnitude > 0.1 then
-                    myRoot.CFrame = CFrame.lookAt(myRoot.Position, lookPos)
-                end
-            end
-        else
-            stopAim()
-        end
-    end)
-end
-
-AimPlayerBtn.MouseButton1Click:Connect(function()
-    if AimActive then stopAim() else startAim() end
-end)
-
--- ЛОГИКА ТЕЛЕПОРТА
-TPPlayerBtn.MouseButton1Click:Connect(function()
-    if SelectedPlayerName == "" then return end
-    local targetP = game.Players:FindFirstChild(SelectedPlayerName)
-    local targetChar = targetP and targetP.Character
-    local targetRoot = targetChar and targetChar:FindFirstChild("HumanoidRootPart")
-    local myChar = Player.Character
-    local myRoot = myChar and myChar:FindFirstChild("HumanoidRootPart")
-    
-    if myRoot and targetRoot then
-        if Flying then
-            savedIdlePos = targetRoot.Position + Vector3.new(0, 5, 0)
-            myRoot.CFrame = CFrame.new(savedIdlePos)
-        else
-            myRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 0, 3)
+        if myRoot then
+            local targetPos = selectedTargetPlayer.Character.HumanoidRootPart.Position
+            myRoot.CFrame = CFrame.lookAt(myRoot.Position, Vector3.new(targetPos.X, myRoot.Position.Y, targetPos.Z))
         end
     end
 end)
+-- =================================================================================
 
--- НАСТРОЙКИ КНОПОК
 SettingsBtn.MouseButton1Click:Connect(function()
     local targetVisibility = not LookBtn.Visible
     WobbleMenuBtn.Visible = targetVisibility
@@ -474,9 +370,7 @@ PlayerMenuBtn.MouseButton1Click:Connect(function()
         WobblePanel.Visible = false
         EmoteContainer.Visible = false
         SpeechContainer.Visible = false
-        refreshPlayerList()
-    else
-        stopAim()
+        refreshPlayerList() -- Обновляем при открытии
     end
 end)
 
@@ -534,7 +428,6 @@ SpeechMenuBtn.MouseButton1Click:Connect(function()
     if SpeechContainer.Visible then WobblePanel.Visible = false; EmoteContainer.Visible = false; PlayerPanel.Visible = false end
 end)
 
--- ВОЗВРАЩЕНА АГРЕССИВНАЯ И БЫСТРАЯ ЛОГИКА ТОЛЧКА (FLING) ИЗ ПЕРВОГО СКРИПТА
 local function flingTarget(targetChar)
     if FlingingActive then return end
     FlingingActive = true
@@ -587,7 +480,6 @@ local function flingTarget(targetChar)
             end
         end
         
-        -- Цикл на 2 итерации со сверхвысокой скоростью
         for i = 1, 2 do
             if not targetRoot or not targetRoot.Parent or not myRoot or not myRoot.Parent then break end
             Camera.CFrame = savedCamCFrame 
@@ -832,7 +724,6 @@ function StartFlying()
     
     local wasMovingLastFrame = false
     local savedIdlePos = nil 
-    local currentBank = 0
 
     task.spawn(function()
         while Flying and Root and Root.Parent do
@@ -955,492 +846,62 @@ function StartFlying()
                                 Root.Anchored = false
                                 if landTrack then landTrack:Stop(0.5) end
                                 
+                                -- ИСПРАВЛЕНО И ЗАКОНЧЕНО ТУТ:
                                 local uprightCFrame = CFrame.new(Root.Position) * CFrame.Angles(0, yRotation, 0)
-                                local standTween = TweenService:Create(Root, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = uprightCFrame})
-                                standTween:Play()
-                                standTween.Completed:Wait() 
-                                currentHum.PlatformStand = false
-                                currentHum.AutoRotate = true
-                                break 
-                            end
-                        end
-                    end
-                    
-                    -- Если включен Аим, то вращение по камере/движению отключается в этой части
-                    if isMoving then
-                        if not wasMovingInFlight then wasMovingInFlight = true; savedCameraType = Camera.CameraType; Camera.CameraType = Enum.CameraType.Custom end
-                        if moveVel.Magnitude > 0.01 and not AimActive then
-                            local lookDir
-                            if ShiftLockActive then
-                                lookDir = Camera.CFrame.LookVector
-                            else
-                                local horizontalDir = Vector3.new(moveVel.X, 0, moveVel.Z)
-                                if horizontalDir.Magnitude > 0.1 then
-                                    lookDir = moveVel.Unit
-                                else
-                                    local camLook = Camera.CFrame.LookVector
-                                    lookDir = Vector3.new(camLook.X, 0, camLook.Z).Unit
-                                    if lookDir.Magnitude < 0.01 then
-                                        lookDir = Root.CFrame.LookVector
-                                    end
-                                end
-                            end
-
-                            local relativeMove = Camera.CFrame:VectorToObjectSpace(moveDir)
-                            local targetBank = 0
-                            if moveDir.Magnitude > 0.05 then
-                                targetBank = -relativeMove.X * math.rad(25)
-                            end
-                            currentBank = currentBank + (targetBank - currentBank) * 0.1
-
-                            local targetRotation = CFrame.lookAt(Root.Position, Root.Position + lookDir, Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, currentBank)
-                            bg.CFrame = bg.CFrame:Lerp(targetRotation, 0.15) 
-                        end
-                    else
-                        currentBank = currentBank + (0 - currentBank) * 0.1
-                        if wasMovingInFlight then wasMovingInFlight = false; Camera.CameraType = savedCameraType end
-                        if not AimActive then
-                            if ShiftLockActive or LookWithCamera then
-                                local camLook = Camera.CFrame.LookVector
-                                if camLook.Magnitude > 0.01 then
-                                    local targetRotation = CFrame.lookAt(Root.Position, Root.Position + camLook, Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, currentBank)
-                                    bg.CFrame = bg.CFrame:Lerp(targetRotation, 0.12) 
-                                end
-                            else
-                                local _, yRotation, _ = bg.CFrame:ToEulerAnglesYXZ()
-                                bg.CFrame = bg.CFrame:Lerp(CFrame.new(Root.Position) * CFrame.Angles(0, yRotation, 0) * CFrame.Angles(0, 0, currentBank), 0.12) 
+                                Root.CFrame = uprightCFrame
                             end
                         end
                     end
                 end
             end
-            RunService.Heartbeat:Wait()
+            RunService.RenderStepped:Wait()
         end
     end)
 end
 
-function StartSpeedFlying()
-    local Char = Player.Character
-    if not Char or not Char:FindFirstChild("HumanoidRootPart") then return end
-    local Root = Char.HumanoidRootPart
-    local Hum = Char:FindFirstChildOfClass("Humanoid")
-    local Animator = Hum:FindFirstChildOfClass("Animator") or Hum:WaitForChild("Animator", 2)
-    
-    stopCurrentEmote()
-    if activeTrack then activeTrack:Stop() activeTrack = nil end
-    
-    Flying = true
-    ToggleBtn.Text = "Fly\nON"   
-    SpeedFlyBtn.Text = "Speed\nFly" 
-    flightStartTime = os.clock()
-    
-    local EMOTE_ID = "rbxassetid://132168338773523"
-    local FLY_ANIM_ID = "rbxassetid://114833664438028"
-    local START_TIME = 1.0 
-    local DURATION = 1.0 
-    local DASH_DURATION = 3.5 
-    local FLY_SPEED = 120 
-    local UPWARD_SPEED = 25 
-    local FADE_TIME = 0.4 
-    
-    if Hum then
-        Hum.AutoRotate = false
-        Hum.PlatformStand = true 
-        loadTracks(Hum)
-    end
-    
-    Root.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
-    
-    bv = Instance.new("BodyVelocity")
-    bv.MaxForce = Vector3.new(1e6, 1e6, 1e6)
-    bv.Velocity = Vector3.new(0, 0, 0) 
-    bv.Parent = Root
-    
-    bg = Instance.new("BodyGyro")
-    bg.MaxTorque = Vector3.new(1e6, 1e6, 1e6) 
-    bg.P = 1000000 
-    bg.D = 9000 
-    bg.CFrame = Root.CFrame
-    bg.Parent = Root
+-- ============================= ЛОГИКА ОСТАЛЬНЫХ КНОПОК =============================
+ToggleBtn.MouseButton1Click:Connect(function()
+    if Flying then StopFlying() else StartFlying() end
+end)
 
-    local emoteAnim = Instance.new("Animation")
-    emoteAnim.AnimationId = EMOTE_ID
-    local emoteTrack = Animator:LoadAnimation(emoteAnim)
-    emoteTrack.Priority = Enum.AnimationPriority.Action4
-    emoteTrack:Play(0.5) 
-    
-    local elapsed = 0
-    while emoteTrack.Length == 0 and elapsed < 0.5 do
-        RunService.Heartbeat:Wait()
-        elapsed = elapsed + 0.015
-    end
-    task.wait(0.05)
-    if not Flying then return end
-    
-    emoteTrack.TimePosition = START_TIME 
-    
-    task.wait(DURATION)
-    if not Flying or not Root.Parent or not Hum then return end
-    
-    emoteTrack:AdjustSpeed(0) 
-    
-    local flyAnim = Instance.new("Animation")
-    flyAnim.AnimationId = FLY_ANIM_ID
-    local flyTrack = Animator:LoadAnimation(flyAnim)
-    flyTrack.Priority = Enum.AnimationPriority.Action
-    flyTrack.Looped = true
-    
-    flyTrack:Play(FADE_TIME)
-    emoteTrack:Stop(FADE_TIME)
-    activeTrack = flyTrack
-    activeTrack:AdjustSpeed(moveAnimSpeed)
-    
-    local startSpeed = FLY_SPEED
-    if BoostActive then startSpeed = startSpeed * 4 end 
-    currentVelocity = (Root.CFrame.LookVector * startSpeed) + Vector3.new(0, UPWARD_SPEED, 0)
-    bv.Velocity = currentVelocity
-    
-    task.wait(0.1)
-    if emoteTrack then emoteTrack:Destroy() end
-    
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterDescendantsInstances = {Char}
-    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    
-    local wasMovingLastFrame = false
-    local savedIdlePos = nil
-    local currentBank = 0
+CrashBtn.MouseButton1Click:Connect(function()
+    CrashEnabled = not CrashEnabled
+    CrashBtn.Text = CrashEnabled and "Ground\nON" or "Ground\nOFF"
+    CrashBtn.BackgroundColor3 = CrashEnabled and Color3.fromRGB(20, 20, 20) or Color3.fromRGB(150, 0, 0)
+end)
 
-    task.spawn(function()
-        while Flying and Root and Root.Parent do
-            local currentHum = Char:FindFirstChildOfClass("Humanoid")
-            if not currentHum then break end
-            
-            if not FlingingActive then
-                if IsBoostingCharging then
-                    if bv then bv.Velocity = Vector3.zero end
-                    currentVelocity = Vector3.zero
-                else
-                    local moveDir = currentHum.MoveDirection
-                    local isMoving = moveDir.Magnitude > 0.05 or UpValue ~= 0 or DownValue ~= 0
-                    
-                    if os.clock() - flightStartTime > (DURATION + DASH_DURATION) and not isMoving and BoostActive then
-                        BoostActive = false
-                        BoostBtn.Text = "Boost\nOFF"
-                        BoostBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-                    end
-                    
-                    local speed = SpeedTable[SpeedLevel] or 60
-                    if BoostActive then speed = speed * 4 end 
-                    
-                    local verticalVel = 0
-                    if moveDir.Magnitude > 0.05 then verticalVel = Camera.CFrame.LookVector.Y * speed end
-                    local manualVertical = (UpValue - DownValue) * (speed * 0.5)
-                    verticalVel = verticalVel + manualVertical
-                    local moveVel = (moveDir * speed) + Vector3.new(0, verticalVel, 0)
-                    
-                    if os.clock() - flightStartTime > (DURATION + DASH_DURATION) then
-                        local targetVelocity = Vector3.new(0, 0, 0)
-                        
-                        if isMoving then
-                            savedIdlePos = nil
-                            wasMovingLastFrame = true
-                            targetVelocity = moveVel
-                            if bv then
-                                bv.Velocity = bv.Velocity:Lerp(targetVelocity, 0.08)
-                                currentVelocity = bv.Velocity
-                            end
-                        else
-                            if wasMovingLastFrame then
-                                wasMovingLastFrame = false
-                                Root.AssemblyLinearVelocity = Vector3.zero
-                                if bv then bv.Velocity = Vector3.zero end
-                            end
-                            if not savedIdlePos then
-                                savedIdlePos = Root.Position
-                            end
-                            
-                            if CharWobbleEnabled and savedIdlePos then
-                                local t = os.clock() * 0.7 * CharWobbleSpeed
-                                local nX = math.noise(t, 14.23, 5.12) * 2.5 * CharWobbleAmplitude
-                                local nY = math.noise(7.41, t, 19.85) * 1.8 * CharWobbleAmplitude
-                                local nZ = math.noise(23.11, 11.45, t) * 2.5 * CharWobbleAmplitude
-                                
-                                local targetPos = savedIdlePos + Vector3.new(nX, nY, nZ)
-                                targetVelocity = (targetPos - Root.Position) * 4.5
-                            end
-                            
-                            if bv then
-                                bv.Velocity = targetVelocity
-                                currentVelocity = targetVelocity
-                            end
-                        end
-
-                        local isMovingAnim = moveDir.Magnitude > 0.05
-                        local targetTrack
-                        
-                        if BoostActive and isMovingAnim then
-                            if not boostFlyTrack or boostFlyTrack.Animation.AnimationId ~= "rbxassetid://131114687716793" then
-                                local anim = Instance.new("Animation")
-                                anim.AnimationId = "rbxassetid://131114687716793"
-                                boostFlyTrack = currentHum:LoadAnimation(anim)
-                                boostFlyTrack.Priority = Enum.AnimationPriority.Action4
-                                boostFlyTrack.Looped = true
-                            end
-                            targetTrack = boostFlyTrack
-                        else
-                            targetTrack = isMovingAnim and moveTracks[currentMoveIdx] or idleTracks[currentIdleIdx]
-                        end
-                        
-                        if targetTrack and targetTrack ~= activeTrack and Flying then
-                            local fade = isMovingAnim and moveFadeTime or idleFadeTime
-                            if activeTrack then activeTrack:Stop(fade) end
-                            activeTrack = targetTrack
-                            activeTrack:Play(fade)
-                            if targetTrack == boostFlyTrack then
-                                activeTrack:AdjustSpeed(1.2)
-                            else
-                                activeTrack:AdjustSpeed(isMovingAnim and moveAnimSpeed or idleAnimSpeed)
-                            end
-                        end
-                    else
-                        if bv then
-                            local dashSpeed = FLY_SPEED
-                            if BoostActive then dashSpeed = dashSpeed * 4 end 
-                            currentVelocity = (Root.CFrame.LookVector * dashSpeed) + Vector3.new(0, UPWARD_SPEED, 0)
-                            if CharWobbleEnabled then
-                                local t = os.clock() * 4.5 * CharWobbleSpeed
-                                local transAmp = 2 * CharWobbleAmplitude
-                                local dashZigzagY = (math.sin(t * 3.2) + math.cos(t * 6.4) * 0.25) * 0.5
-                                local wobbleMove = Vector3.new(math.sin(t), dashZigzagY, math.cos(t)) * transAmp
-                                currentVelocity = currentVelocity + Root.CFrame:VectorToWorldSpace(wobbleMove)
-                            end
-                            bv.Velocity = bv.Velocity:Lerp(currentVelocity, 0.1)
-                        end
-                    end
-                    
-                    if CrashEnabled and (os.clock() - flightStartTime) > (DURATION + 1.0) and currentVelocity.Magnitude > CrashMinSpeed then
-                        local lookAheadDistance = math.max(currentVelocity.Magnitude * 0.05, 10)
-                        local raycastResult = workspace:Raycast(Root.Position, currentVelocity.Unit * lookAheadDistance, raycastParams)
-                        if raycastResult and raycastResult.Instance and raycastResult.Instance.CanCollide then
-                            local currentDist = (Root.Position - raycastResult.Position).Magnitude
-                            if currentDist <= 8 then
-                                local hitPos = raycastResult.Position
-                                StopFlying() 
-                                Root.AssemblyLinearVelocity = Vector3.zero
-                                Root.AssemblyAngularVelocity = Vector3.zero
-                                
-                                local _, yRotation, _ = Root.CFrame:ToEulerAnglesYXZ()
-                                local targetCFrame = CFrame.new(hitPos + Vector3.new(0, LandingHeightOffset, 0)) * CFrame.Angles(0, yRotation, 0)
-                                
-                                local landTween = TweenService:Create(Root, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = targetCFrame})
-                                local landAnimInstance = Instance.new("Animation")
-                                landAnimInstance.AnimationId = LandingAnim
-                                local success, landTrack = pcall(function() return currentHum:LoadAnimation(landAnimInstance) end)
-                                if success and landTrack then
-                                    landTrack.Priority = Enum.AnimationPriority.Action4
-                                    landTrack:Play(0.1) 
-                                end
-                                landTween:Play()
-                                landTween.Completed:Wait() 
-                                Root.Anchored = true 
-                                task.wait(1.5) 
-                                Root.Anchored = false
-                                if landTrack then landTrack:Stop(0.5) end
-                                
-                                local uprightCFrame = CFrame.new(Root.Position) * CFrame.Angles(0, yRotation, 0)
-                                local standTween = TweenService:Create(Root, TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {CFrame = uprightCFrame})
-                                standTween:Play()
-                                standTween.Completed:Wait() 
-                                currentHum.PlatformStand = false
-                                currentHum.AutoRotate = true
-                                break 
-                            end
-                        end
-                    end
-                    
-                    if os.clock() - flightStartTime > (DURATION + DASH_DURATION) then
-                        local isMoving = moveDir.Magnitude > 0.05
-                        if isMoving then
-                            if not wasMovingInFlight then wasMovingInFlight = true; savedCameraType = Camera.CameraType; Camera.CameraType = Enum.CameraType.Custom end
-                            if moveVel.Magnitude > 0.01 and not AimActive then
-                                local lookDir
-                                if ShiftLockActive then
-                                    lookDir = Camera.CFrame.LookVector
-                                else
-                                    local horizontalDir = Vector3.new(moveVel.X, 0, moveVel.Z)
-                                    if horizontalDir.Magnitude > 0.1 then
-                                        lookDir = moveVel.Unit
-                                    else
-                                        local camLook = Camera.CFrame.LookVector
-                                        lookDir = Vector3.new(camLook.X, 0, camLook.Z).Unit
-                                        if lookDir.Magnitude < 0.01 then
-                                            lookDir = Root.CFrame.LookVector
-                                        end
-                                    end
-                                end
-
-                                local relativeMove = Camera.CFrame:VectorToObjectSpace(moveDir)
-                                local targetBank = 0
-                                if moveDir.Magnitude > 0.05 then
-                                    targetBank = -relativeMove.X * math.rad(25)
-                                end
-                                currentBank = currentBank + (targetBank - currentBank) * 0.1
-
-                                local targetRotation = CFrame.lookAt(Root.Position, Root.Position + lookDir, Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, currentBank)
-                                bg.CFrame = bg.CFrame:Lerp(targetRotation, 0.15)
-                            end
-                        else
-                            currentBank = currentBank + (0 - currentBank) * 0.1
-                            if wasMovingInFlight then wasMovingInFlight = false; Camera.CameraType = savedCameraType end
-                            if not AimActive then
-                                if ShiftLockActive or LookWithCamera then
-                                    local camLook = Camera.CFrame.LookVector
-                                    if camLook.Magnitude > 0.01 then
-                                        local targetRotation = CFrame.lookAt(Root.Position, Root.Position + camLook, Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, currentBank)
-                                        bg.CFrame = bg.CFrame:Lerp(targetRotation, 0.12)
-                                    end
-                                else
-                                    local _, yRotation, _ = bg.CFrame:ToEulerAnglesYXZ()
-                                    bg.CFrame = bg.CFrame:Lerp(CFrame.new(Root.Position) * CFrame.Angles(0, yRotation, 0) * CFrame.Angles(0, 0, currentBank), 0.12)
-                                end
-                            end
-                        end
-                    else
-                        currentBank = currentBank + (0 - currentBank) * 0.1
-                        if (ShiftLockActive or LookWithCamera) and bg and not AimActive then
-                            local camLook = Camera.CFrame.LookVector
-                            if camLook.Magnitude > 0.01 then
-                                local targetRotation = CFrame.lookAt(Root.Position, Root.Position + camLook, Vector3.new(0, 1, 0)) * CFrame.Angles(0, 0, currentBank)
-                                bg.CFrame = bg.CFrame:Lerp(targetRotation, 0.15)
-                            end
-                        end
-                    end
-                end
-            end
-            RunService.Heartbeat:Wait()
-        end
-    end)
-end
-
-BoostBtn.MouseButton1Click:Connect(function()
-    if not Flying or IsBoostingCharging or BoostActive then return end 
-    
-    IsBoostingCharging = true
-    BoostBtn.Text = "Boost\nCHRG"
-    BoostBtn.BackgroundColor3 = Color3.fromRGB(200, 100, 0)
-    
-    local Char = Player.Character
-    local Hum = Char and Char:FindFirstChildOfClass("Humanoid")
-    if Hum then
-        for _, track in pairs(Hum:GetPlayingAnimationTracks()) do
-            track:Stop(0.1)
-        end
-        activeTrack = nil
-        
-        local anim = Instance.new("Animation")
-        anim.AnimationId = "rbxassetid://127528880902667"
-        local track = Hum:LoadAnimation(anim)
-        track.Priority = Enum.AnimationPriority.Action4
-        track:Play()
-        
-        task.wait(0.8)
-        track:Stop(0.1)
-    else
-        task.wait(0.8)
-    end
-    
-    if not Flying then 
-        IsBoostingCharging = false
-        BoostActive = false
-        BoostBtn.Text = "Boost\nOFF"
-        BoostBtn.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-        return 
-    end
-    
-    IsBoostingCharging = false
-    BoostActive = true
-    BoostBtn.Text = "Boost\nON"
-    BoostBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 255)
-    
-    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
-    if Root and bv then
-        local speed = SpeedTable[SpeedLevel] or 60
-        bv.Velocity = Root.CFrame.LookVector * (speed * 4) 
+PoseBtn.MouseButton1Click:Connect(function()
+    currentIdleIdx = (currentIdleIdx % #IdleAnims) + 1
+    PoseBtn.Text = "Idle\nV" .. currentIdleIdx
+    if Flying and activeTrack and currentVelocity.Magnitude < 1 then
+        activeTrack:Stop()
+        activeTrack = idleTracks[currentIdleIdx]
+        if activeTrack then activeTrack:Play(idleFadeTime) end
     end
 end)
 
-ToggleBtn.MouseButton1Click:Connect(function() if Flying then StopFlying() else StartFlying() end end)
-SpeedFlyBtn.MouseButton1Click:Connect(function() if Flying then StopFlying() else StartSpeedFlying() end end)
-
-CrashBtn.MouseButton1Click:Connect(function() CrashEnabled = not CrashEnabled; CrashBtn.Text = CrashEnabled and "Ground\nON" or "Ground\nOFF" end)
-
-PoseBtn.MouseButton1Click:Connect(function() 
-    currentIdleIdx = (currentIdleIdx % #IdleAnims) + 1 
-    PoseBtn.Text = "Idle\nV" .. currentIdleIdx 
+AnimBtn.MouseButton1Click:Connect(function()
+    currentMoveIdx = (currentMoveIdx % #MoveAnims) + 1
+    AnimBtn.Text = "Move\nV" .. currentMoveIdx
+    if Flying and activeTrack and currentVelocity.Magnitude >= 1 then
+        activeTrack:Stop()
+        activeTrack = moveTracks[currentMoveIdx]
+        if activeTrack then activeTrack:Play(moveFadeTime) end
+    end
 end)
 
-AnimBtn.MouseButton1Click:Connect(function() currentMoveIdx = (currentMoveIdx % 3) + 1; AnimBtn.Text = "Move\nV" .. currentMoveIdx end)
-SpeedBtn.MouseButton1Click:Connect(function() SpeedLevel = (SpeedLevel % 5) + 1; SpeedBtn.Text = "Speed\nLvl " .. SpeedLevel end)
+SpeedBtn.MouseButton1Click:Connect(function()
+    SpeedLevel = (SpeedLevel % #SpeedTable) + 1
+    SpeedBtn.Text = "Speed\nLvl " .. SpeedLevel
+end)
+
 UpBtn.MouseButton1Down:Connect(function() UpValue = 1 end)
 UpBtn.MouseButton1Up:Connect(function() UpValue = 0 end)
 DownBtn.MouseButton1Down:Connect(function() DownValue = 1 end)
 DownBtn.MouseButton1Up:Connect(function() DownValue = 0 end)
 
-SuperJumpBtn.MouseButton1Click:Connect(function()
-    if Flying then StopFlying() end
-    local Char = Player.Character
-    local Root = Char and Char:FindFirstChild("HumanoidRootPart")
-    local Hum = Char and Char:FindFirstChild("Humanoid")
-    
-    if Root and Hum then
-        local chargeAnim = Instance.new("Animation")
-        chargeAnim.AnimationId = "rbxassetid://127610911773857"
-        local chargeTrack = Hum:LoadAnimation(chargeAnim)
-        chargeTrack.Priority = Enum.AnimationPriority.Action3
-        chargeTrack:Play(0.3)
-        
-        task.wait(0.8)
-        chargeTrack:Stop(0.1)
-        
-        Hum.PlatformStand = true
-        Hum.AutoRotate = false
-        
-        local jumpVelocity = Instance.new("BodyVelocity", Root)
-        jumpVelocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
-        jumpVelocity.Velocity = Vector3.new(Root.AssemblyLinearVelocity.X, 100, Root.AssemblyLinearVelocity.Z)
-        
-        local jumpGyro = Instance.new("BodyGyro", Root)
-        jumpGyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
-        
-        local _, yRot, _ = Root.CFrame:ToEulerAnglesYXZ()
-        jumpGyro.CFrame = CFrame.fromEulerAnglesYXZ(math.rad(90), yRot, 0)
-        
-        local flyUpAnim = Instance.new("Animation")
-        flyUpAnim.AnimationId = "rbxassetid://132105268936736"
-        local flyUpTrack = Hum:LoadAnimation(flyUpAnim)
-        flyUpTrack.Priority = Enum.AnimationPriority.Action3
-        flyUpTrack:Play(0.15)
-        
-        local originalFOV = Camera.FieldOfView
-        TweenService:Create(Camera, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {FieldOfView = originalFOV + 12}):Play()
-        
-        local jumpTween = TweenService:Create(jumpVelocity, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-            Velocity = Vector3.new(Root.AssemblyLinearVelocity.X, 30, Root.AssemblyLinearVelocity.Z)
-        })
-        jumpTween:Play()
-        
-        task.wait(0.55)
-        
-        TweenService:Create(Camera, TweenInfo.new(0.35, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {FieldOfView = originalFOV}):Play()
-        flyUpTrack:Stop(0.3)
-        
-        Root.AssemblyLinearVelocity = jumpVelocity.Velocity
-        
-        jumpVelocity:Destroy()
-        jumpGyro:Destroy()
-        
-        Hum.PlatformStand = false
-        StartFlying() 
-    end
+BoostBtn.MouseButton1Click:Connect(function()
+    BoostActive = not BoostActive
+    BoostBtn.Text = BoostActive and "Boost\nON" or "Boost\nOFF"
+    BoostBtn.BackgroundColor3 = BoostActive and Color3.fromRGB(0, 150, 0) or Color3.fromRGB(20, 20, 20)
 end)
